@@ -1,0 +1,997 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>計算目標タイムシミュレーター</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin:0; font-family: -apple-system,BlinkMacSystemFont,"Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif; background:#f5f6f8; color:#222; }
+  .wrap { max-width:1000px; margin:0 auto; padding:24px; }
+  h1 { margin:0 0 6px; font-size:28px; }
+  .sub { color:#666; margin-bottom:22px; }
+  .card { background:#fff; border-radius:14px; padding:20px; margin-bottom:18px; box-shadow:0 2px 10px rgba(0,0,0,.06); }
+  h2 { margin:0 0 14px; font-size:19px; }
+  .grid { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }
+  label { display:block; font-size:13px; color:#666; margin-bottom:5px; }
+  input, select { width:100%; padding:11px 12px; border:1px solid #d5d8dd; border-radius:9px; font-size:16px; background:#fff; }
+  button { border:0; border-radius:9px; padding:11px 18px; font-size:15px; cursor:pointer; }
+  .primary { background:#222; color:white; }
+  .secondary { background:#e9ebee; }
+  .actions { display:flex; gap:8px; margin-top:15px; }
+  table { width:100%; border-collapse:collapse; }
+  th,td { padding:10px 8px; border-bottom:1px solid #eee; text-align:right; }
+  th:first-child,td:first-child { text-align:left; }
+  th { color:#666; font-size:13px; }
+  .big { font-size:30px; font-weight:700; }
+  .note { font-size:13px; color:#666; line-height:1.6; }
+  .highlight { background:#f1f3f5; border-radius:10px; padding:15px; margin-top:12px; }
+  .error { color:#b00020; font-weight:600; }
+  @media(max-width:700px){ .grid{grid-template-columns:1fr 1fr;} .wrap{padding:14px;} }
+
+.num-control{display:inline-flex;align-items:center;gap:0}
+.num-control input{width:90px;text-align:center}
+.step-btn{min-width:38px;height:36px;font-size:20px;line-height:1;border:1px solid #bbb;background:#f5f5f5;cursor:pointer}
+.step-btn:hover{background:#e9e9e9}
+.block-num{display:inline-flex;align-items:center;gap:0}
+.block-num input{width:72px;text-align:center}
+
+/* Refined simulator UI */
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Hiragino Kaku Gothic ProN","Yu Gothic",Meiryo,sans-serif}
+.card{border-radius:16px;box-shadow:0 4px 18px rgba(0,0,0,.07);border:1px solid #e6e8ec}
+h1{letter-spacing:.02em}
+h2{display:flex;align-items:center;gap:8px}
+label{font-weight:700}
+.num-control,.block-num{border:1px solid #d8dce2;border-radius:10px;overflow:hidden;background:#fff;vertical-align:middle}
+.num-control input,.block-num input{border:0!important;outline:0;width:72px;height:38px;background:#fff;font-size:16px;font-weight:600}
+.num-control input{width:88px}
+.step-btn{border:0!important;background:#f4f6f8!important;color:#333;font-weight:700;width:38px;height:38px;cursor:pointer}
+.step-btn:hover{background:#e8edf2!important}
+.step-btn:active{transform:scale(.96)}
+#settings table{border-collapse:separate;border-spacing:0;width:100%;overflow:hidden;border:1px solid #e1e5ea;border-radius:12px}
+#settings th{background:#f5f7fa;font-weight:700}
+#settings td,#settings th{padding:11px 10px;border-bottom:1px solid #edf0f3}
+#settings tr:last-child td{border-bottom:0}
+#settings td:first-child{font-weight:700;text-align:center;white-space:nowrap}
+#settings .secondary{border-radius:8px;padding:7px 11px}
+.highlight{border-radius:14px}
+.note{line-height:1.7}
+
+.setting-summary{margin:0 0 12px;padding:12px 14px;border-radius:12px;background:#f5f7fa;border:1px solid #e2e6eb}
+.summary-title{font-weight:700;margin-bottom:3px}
+
+.goal-card{padding:18px 20px;border:1px solid #e1e5ea;border-radius:14px;background:#f7f9fb}
+.goal-card.personal-goal{background:#fffaf0;border-color:#ead9a8}
+.goal-title{font-weight:800;font-size:17px;margin-bottom:7px}
+.goal-main{font-size:24px;font-weight:800;margin-bottom:5px}
+.goal-card .big{margin-top:10px}
+
+/* Mobile / iPhone responsive layout */
+*{box-sizing:border-box}
+html{width:100%;overflow-x:hidden;-webkit-text-size-adjust:100%}
+body{margin:0;width:100%;min-width:0;overflow-x:hidden}
+input,select,button{font-size:16px;max-width:100%}
+button{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+#settings{width:100%;min-width:0;overflow-x:auto;-webkit-overflow-scrolling:touch}
+#settings table{min-width:0;width:100%;table-layout:auto}
+#settings th,#settings td{word-break:break-word}
+.actions{display:flex;flex-wrap:wrap;gap:10px}
+@media (max-width:600px){
+ body{font-size:15px}
+ .card{width:100%;min-width:0;padding:16px 12px}
+ h1{font-size:24px;line-height:1.25}
+ h2{font-size:20px;line-height:1.3}
+ h3{font-size:17px}
+ .num-control{height:44px}
+ .num-control input{width:76px;height:42px}
+ .step-btn{width:44px;height:42px;min-width:44px;font-size:22px}
+ #settings table{font-size:13px}
+ #settings th,#settings td{padding:8px 5px}
+ #settings .block-num input{width:52px;height:40px}
+ #settings .block-num .step-btn{width:36px;min-width:36px;height:40px}
+ #settings td:nth-child(3){font-size:12px}
+ .goal-main{font-size:21px}
+ .big{font-size:24px;word-break:break-word}
+ .highlight,.goal-card{padding:14px}
+ .actions button{flex:1 1 140px;min-height:44px}
+}
+@media (max-width:380px){
+ #settings table{min-width:560px}
+}
+
+  .saved-settings { margin-top:18px; padding:16px; border:1px solid #e1e4e8; border-radius:12px; background:#f8f9fb; }
+  .saved-settings-title { font-weight:700; font-size:16px; margin-bottom:10px; }
+  .save-row { display:flex; gap:8px; align-items:center; }
+  .save-row input { flex:1; min-width:0; }
+  .saved-list { margin-top:12px; display:flex; flex-direction:column; gap:8px; }
+  .saved-item { display:flex; align-items:center; gap:8px; background:#fff; border:1px solid #e1e4e8; border-radius:10px; padding:10px 12px; }
+  .saved-item-main { flex:1; min-width:0; }
+  .saved-item-name { font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .saved-item-meta { color:#666; font-size:12px; margin-top:3px; }
+  .saved-item button { padding:7px 10px; font-size:13px; white-space:nowrap; }
+  .save-empty { color:#777; font-size:13px; padding:8px 2px; }
+  @media (max-width:600px){
+    .save-row { flex-direction:column; align-items:stretch; }
+    .saved-item { flex-wrap:wrap; }
+    .saved-item-main { width:100%; flex-basis:100%; }
+    .saved-item button { flex:1; }
+  }
+
+</style>
+<style> .voice-timer-card{margin:18px 0;padding:16px;border:1px solid #ddd;border-radius:14px}.voice-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0}.voice-grid>div{padding:12px;text-align:center;border:1px solid #ddd;border-radius:12px}.voice-grid span,.voice-grid small{display:block}.voice-grid strong{display:block;font-size:32px;margin:5px 0}.voice-actions{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}.voice-actions button{min-height:44px;padding:8px 14px;font-size:16px;touch-action:manipulation}.voice-timer-card select{font-size:16px;min-height:40px}@media(max-width:380px){.voice-grid{grid-template-columns:1fr}.voice-grid strong{font-size:28px}}</style></head>
+<body>
+<div class="wrap">
+  <h1>計算目標タイムシミュレーター</h1>
+  <div class="sub">問題の「計算回数」と制限時間から、生徒ごとの目標タイムを設定します。</div>
+
+  <div class="card">
+    <h2>① 基本設定</h2>
+    <div class="note" style="margin-bottom:14px">
+      制限時間が決まっている問題について、「この生徒は何題を目標にするか」を決め、難易度に応じた目標タイムを算出します。
+    </div>
+    <div class="grid">
+      <div>
+        <label>種目</label>
+        <select id="type">
+          <option value="mul">かけ算</option>
+          <option value="div">わり算</option>
+          <option value="add">見取算</option>
+        </select>
+      </div>
+      <div>
+        <label>制限時間（分）</label>
+        <input id="minutes" type="number" min="0" step="1" value="3">
+      </div>
+      <div>
+        <label>制限時間（秒）</label>
+        <input id="seconds" type="number" min="0" step="1" value="0">
+      </div>
+      <div>
+        <label>問題数（1題単位）</label>
+        <div class="num-control">
+          <button type="button" id="totalMinus" class="step-btn" aria-label="問題数を1題減らす">−</button>
+          <input id="total" type="text" inputmode="numeric" value="50" aria-label="問題数">
+          <button type="button" id="totalPlus" class="step-btn" aria-label="問題数を1題増やす">＋</button>
+        </div>
+      </div>
+      <div>
+        <label>生徒の目標問題数（1題単位）</label>
+        <div class="num-control">
+          <button type="button" class="step-btn" aria-label="目標問題数を1題減らす" onclick="changeGoal(-1)">−</button>
+          <input id="goal" type="text" inputmode="numeric" value="30" aria-label="生徒の目標問題数">
+          <button type="button" class="step-btn" aria-label="目標問題数を1題増やす" onclick="changeGoal(1)">＋</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>② 問題設定</h2>
+    <div class="note" style="margin-bottom:14px">
+      難易度が変わる単位ごとに「ブロック」を設定してください。最初は1ブロックです。必要に応じて追加できます。
+    </div>
+    <div id="settings"></div>
+    <div class="actions">
+      <button class="primary" onclick="addBlock()">＋ 難易度ブロックを追加</button>
+      <button class="primary" onclick="calculate()">計算する</button>
+      <button class="secondary" onclick="resetExample()">例に戻す</button>
+    </div>
+    <div class="saved-settings">
+      <div class="saved-settings-title">💾 問題設定を保存</div>
+      <div class="note" style="margin-bottom:10px">大会名・検定名などを入力して保存すると、この端末のブラウザに問題設定を保存できます。</div>
+      <div class="save-row">
+        <input id="saveName" type="text" placeholder="例：そろばん関西カップ2027" maxlength="80" aria-label="保存する問題設定の名前">
+        <button type="button" class="primary" onclick="saveCurrentSetting()">この設定を保存</button>
+      </div>
+      <div id="savedSettingsList" class="saved-list"></div>
+    </div>
+  </div>
+
+  <div class="card" id="result">
+    <h2>③ 目標タイム</h2>
+    <div class="note">「計算する」を押してください。</div>
+  </div>
+
+  <div class="card">
+    <h2>この試作の計算ルール</h2>
+    <div class="note">
+      かけ算：掛けられる数の桁数 × 掛ける数の桁数 ＝ 1題の計算回数<br>
+      わり算：わる数の桁数 × 答えの桁数 ＝ 1題の計算回数<br>
+      見取算：桁数 × 口数 ＝ 1題の計算回数<br><br>
+      問題全体の「制限時間 ÷ 全問題の総計算回数」で、1回の計算に使える平均時間を逆算します。<br>
+      その時間を各10題ブロックの計算回数に掛け、10題ごとの目標タイムを算出します。
+    </div>
+  </div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+let blocks = [];
+
+function defaultBlock() {
+  const type = $('type').value;
+  if(type === 'mul') return {n:5,a:2,b:2};
+  if(type === 'div') return {n:5,a:2,b:2};
+  return {n:5,a:2,b:5};
+}
+
+function normalizeTotal(){
+  let v = parseInt($('total').value, 10);
+  if(!Number.isFinite(v)) v = 1;
+  v = Math.max(1, v);
+  $('total').value = String(v);
+  return v;
+}
+
+function renderSettings() {
+  const type = $('type').value;
+  let html = `<div class="setting-summary">
+    <div class="summary-title">問題数と問題設定</div>
+    <div class="note">難易度が変わる単位ごとにブロックを設定してください。各ブロックの問題数を合計すると、①の問題数になります。</div>
+  </div>
+  <table><thead><tr>
+    <th>ブロック</th><th>問題数</th><th>問題設定</th><th>1題の計算回数</th><th></th>
+  </tr></thead><tbody>`;
+
+  let start = 1;
+  blocks.forEach((b,i)=>{
+    const n=Math.max(1,Number(b.n)||1);
+    const end = start + n - 1;
+    let fields='';
+    if(type==='mul'){
+      fields=`<div class="block-num"><button type="button" class="step-btn" onclick="stepBlock(${i},'a',-1)">−</button><input data-i="${i}" data-k="a" class="ba" type="text" inputmode="numeric" value="${b.a}"><button type="button" class="step-btn" onclick="stepBlock(${i},'a',1)">＋</button></div> 桁 ×
+              <div class="block-num"><button type="button" class="step-btn" onclick="stepBlock(${i},'b',-1)">−</button><input data-i="${i}" data-k="b" class="bb" type="text" inputmode="numeric" value="${b.b}"><button type="button" class="step-btn" onclick="stepBlock(${i},'b',1)">＋</button></div> 桁`;
+    } else if(type==='div'){
+      fields=`わる数 <div class="block-num"><button type="button" class="step-btn" onclick="stepBlock(${i},'a',-1)">−</button><input data-i="${i}" data-k="a" class="ba" type="text" inputmode="numeric" value="${b.a}"><button type="button" class="step-btn" onclick="stepBlock(${i},'a',1)">＋</button></div> 桁 ／ 答え
+              <div class="block-num"><button type="button" class="step-btn" onclick="stepBlock(${i},'b',-1)">−</button><input data-i="${i}" data-k="b" class="bb" type="text" inputmode="numeric" value="${b.b}"><button type="button" class="step-btn" onclick="stepBlock(${i},'b',1)">＋</button></div> 桁`;
+    } else {
+      fields=`<div class="block-num"><button type="button" class="step-btn" onclick="stepBlock(${i},'a',-1)">−</button><input data-i="${i}" data-k="a" class="ba" type="text" inputmode="numeric" value="${b.a}"><button type="button" class="step-btn" onclick="stepBlock(${i},'a',1)">＋</button></div> 桁 ×
+              <div class="block-num"><button type="button" class="step-btn" onclick="stepBlock(${i},'b',-1)">−</button><input data-i="${i}" data-k="b" class="bb" type="text" inputmode="numeric" value="${b.b}"><button type="button" class="step-btn" onclick="stepBlock(${i},'b',1)">＋</button></div> 口`;
+    }
+    const per = Number(b.a)*Number(b.b);
+    html += `<tr>
+      <td>${i+1}</td>
+      <td><div class="block-num"><button type="button" class="step-btn" onclick="stepBlock(${i},'n',-1)">−</button><input data-i="${i}" data-k="n" class="bn" type="text" inputmode="numeric" value="${n}"><button type="button" class="step-btn" onclick="stepBlock(${i},'n',1)">＋</button></div></td>
+      <td>${fields}</td>
+      <td class="count">${per}回</td>
+      <td><button class="secondary" onclick="removeBlock(${i})">削除</button></td>
+    </tr>`;
+    start = end+1;
+  });
+  html += '</tbody></table>';
+
+  const total = normalizeTotal();
+  const sum = blocks.reduce((s,b)=>s+(Number(b.n)||0),0);
+  let status = '';
+  if(sum === total){
+    status = `<div class="highlight" style="margin-top:12px"><strong>✓ ブロック合計 ${sum}題 = 問題数 ${total}題</strong><div class="note">問題数が一致しています。目標タイムを計算できます。</div></div>`;
+  } else if(sum < total){
+    status = `<div class="highlight" style="margin-top:12px"><strong>あと ${total-sum}題分のブロックが必要です</strong><div class="note">現在 ${sum}題 / 問題数 ${total}題</div></div>`;
+  } else {
+    status = `<div class="highlight" style="margin-top:12px"><strong>⚠ ${sum-total}題多く設定されています</strong><div class="note">現在 ${sum}題 / 問題数 ${total}題</div></div>`;
+  }
+  html += status;
+  if(type === 'add'){
+    html += `<div class="note" style="margin-top:10px"><strong>※ 見取算で桁バラの場合は、問題の平均桁数を入力してください。</strong></div>`;
+  }
+  html += `<div class="note" style="margin-top:10px">ブロックの問題数は自由です。5題、10題、15題、3題など、難易度が変わる単位に合わせて設定できます。</div>`;
+  $('settings').innerHTML=html;
+
+  document.querySelectorAll('#settings input').forEach(inp=>{
+    inp.addEventListener('input',()=>{
+      const i=Number(inp.dataset.i), k=inp.dataset.k;
+      // Keep focus and allow normal multi-digit typing.
+      const raw = inp.value.replace(/\D/g,'');
+      inp.value = raw;
+      if(raw !== '') blocks[i][k] = Number(raw);
+      updateBlockSummary();
+    });
+    inp.addEventListener('change',()=>{
+      const i=Number(inp.dataset.i), k=inp.dataset.k;
+      const raw = inp.value.replace(/\D/g,'');
+      const v = Math.max(1, Number(raw)||1);
+      blocks[i][k] = v;
+      inp.value = String(v);
+      updateBlockSummary();
+      calculate();
+    });
+  });
+}
+
+
+function changeTotal(delta){
+  const input = $('total');
+  let v = parseInt(input.value,10);
+  if(!Number.isFinite(v)) v=1;
+  v=Math.max(1,v+delta);
+  input.value=String(v);
+  renderSettings();
+  calculate();
+}
+
+function changeGoal(delta){
+  let v = parseInt($('goal').value, 10);
+  if(!Number.isFinite(v)) v = 1;
+  v = Math.max(1, v + delta);
+  $('goal').value = String(v);
+  calculate();
+}
+
+function stepValue(id, step){
+  let v = parseInt($(id).value, 10);
+  if(!Number.isFinite(v)) v = 1;
+  v = Math.max(1, v + step);
+  $(id).value = String(v);
+  if(id === 'total') renderSettings();
+  calculate();
+}
+
+function stepBlock(i, key, delta){
+  if(!blocks[i]) return;
+  let v = parseInt(blocks[i][key], 10);
+  if(!Number.isFinite(v)) v = 1;
+  blocks[i][key] = Math.max(1, v + delta);
+  renderSettings();
+  calculate();
+}
+
+function updateBlockSummary(){
+  const type = $('type').value;
+  const total = normalizeTotal();
+  const sum = blocks.reduce((s,b)=>s+(Number(b.n)||0),0);
+
+  document.querySelectorAll('#settings tbody tr').forEach((row,i)=>{
+    if(!blocks[i]) return;
+    const a = Number(blocks[i].a)||0;
+    const b = Number(blocks[i].b)||0;
+    const per = a*b;
+    const cell = row.querySelector('.count');
+    if(cell) cell.textContent = per + '回';
+  });
+
+  const statusBox = document.querySelector('#settings .highlight');
+  if(statusBox){
+    if(sum === total){
+      statusBox.innerHTML = `<strong>✓ ブロック合計 ${sum}題 = 問題数 ${total}題</strong><div class="note">問題数が一致しています。目標タイムを計算できます。</div>`;
+    } else if(sum < total){
+      statusBox.innerHTML = `<strong>あと ${total-sum}題分のブロックが必要です</strong><div class="note">現在 ${sum}題 / 問題数 ${total}題</div>`;
+    } else {
+      statusBox.innerHTML = `<strong>⚠ ${sum-total}題多く設定されています</strong><div class="note">現在 ${sum}題 / 問題数 ${total}題</div>`;
+    }
+  }
+}
+
+function addBlock(){
+  // 新しい難易度ブロックは、直前のブロックの設定をすべて引き継ぐ。
+  // その後、必要な部分だけ変更できる。
+  const prev = blocks[blocks.length-1] || {n:10,a:2,b:1};
+  blocks.push({
+    n:Math.max(1, Number(prev.n)||1),
+    a:Math.max(1, Number(prev.a)||1),
+    b:Math.max(1, Number(prev.b)||1)
+  });
+  renderSettings();
+  calculate();
+}
+function removeBlock(i){
+  if(blocks.length<=1) return;
+  blocks.splice(i,1);
+  renderSettings();
+  calculate();
+}
+const SAVED_SETTINGS_KEY = 'keisan-mokuhyo-time-saved-settings-v1';
+
+function getSavedSettings(){
+  try{
+    const raw = localStorage.getItem(SAVED_SETTINGS_KEY);
+    const data = raw ? JSON.parse(raw) : [];
+    return Array.isArray(data) ? data : [];
+  }catch(e){
+    return [];
+  }
+}
+
+function writeSavedSettings(list){
+  localStorage.setItem(SAVED_SETTINGS_KEY, JSON.stringify(list));
+}
+
+function currentSettingSnapshot(){
+  return {
+    type: $('type').value,
+    minutes: Number($('minutes').value)||0,
+    seconds: Number($('seconds').value)||0,
+    total: Number($('total').value)||1,
+    goal: Number($('goal').value)||1,
+    blocks: blocks.map(b=>({n:Number(b.n)||1,a:Number(b.a)||1,b:Number(b.b)||1}))
+  };
+}
+
+function typeLabel(type){
+  return type==='mul' ? 'かけ算' : type==='div' ? 'わり算' : '見取算';
+}
+
+function saveCurrentSetting(){
+  const input=$('saveName');
+  const name=(input.value||'').trim();
+  if(!name){
+    input.focus();
+    alert('保存する問題設定の名前を入力してください。');
+    return;
+  }
+
+  const snapshot=currentSettingSnapshot();
+  const list=getSavedSettings();
+  const now=new Date().toISOString();
+  const existing=list.findIndex(x=>x.name===name && x.setting.type===snapshot.type);
+  const item={name, type:snapshot.type, setting:snapshot, updatedAt:now};
+
+  if(existing>=0){
+    list[existing]=item;
+  }else{
+    list.unshift(item);
+  }
+  writeSavedSettings(list);
+  input.value='';
+  renderSavedSettings();
+}
+
+function loadSavedSetting(index){
+  const item=getSavedSettings()[index];
+  if(!item || !item.setting) return;
+  const st=item.setting;
+
+  $('type').value=st.type || 'mul';
+  $('minutes').value=Number(st.minutes)||0;
+  $('seconds').value=Number(st.seconds)||0;
+  $('total').value=Math.max(1,Number(st.total)||1);
+  $('goal').value=Math.max(1,Number(st.goal)||1);
+  blocks=(Array.isArray(st.blocks)&&st.blocks.length ? st.blocks : [defaultBlock()]).map(b=>({
+    n:Math.max(1,Number(b.n)||1),
+    a:Math.max(1,Number(b.a)||1),
+    b:Math.max(1,Number(b.b)||1)
+  }));
+
+  renderSettings();
+  calculate();
+  if(typeof window.resetVoiceTimer==='function') window.resetVoiceTimer();
+  document.querySelector('.saved-settings')?.scrollIntoView({behavior:'smooth',block:'center'});
+}
+
+function deleteSavedSetting(index){
+  const list=getSavedSettings();
+  if(!list[index]) return;
+  if(!confirm(`「${list[index].name}」を削除しますか？`)) return;
+  list.splice(index,1);
+  writeSavedSettings(list);
+  renderSavedSettings();
+}
+
+function renderSavedSettings(){
+  const box=$('savedSettingsList');
+  if(!box) return;
+  const list=getSavedSettings();
+  if(!list.length){
+    box.innerHTML='<div class="save-empty">保存した問題設定はまだありません。</div>';
+    return;
+  }
+  box.innerHTML=list.map((item,i)=>{
+    const st=item.setting||{};
+    const type=typeLabel(item.type||st.type);
+    const time=`${Number(st.minutes)||0}分${String(Number(st.seconds)||0).padStart(2,'0')}秒`;
+    const total=Number(st.total)||0;
+    const goal=Number(st.goal)||0;
+    return `<div class="saved-item">
+      <div class="saved-item-main">
+        <div class="saved-item-name">${escapeHtml(item.name)} ${escapeHtml(type)}</div>
+        <div class="saved-item-meta">${total}題・制限時間 ${time}・生徒目標 ${goal}題</div>
+      </div>
+      <button type="button" class="primary" onclick="loadSavedSetting(${i})">呼び出す</button>
+      <button type="button" class="secondary" onclick="deleteSavedSetting(${i})">削除</button>
+    </div>`;
+  }).join('');
+}
+
+function escapeHtml(value){
+  return String(value).replace(/[&<>'"]/g,ch=>({
+    '&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'
+  }[ch]));
+}
+
+function resetExample(){
+  $('type').value='mul'; $('minutes').value=3; $('seconds').value=0;
+  $('total').value=50; $('goal').value=30;
+  blocks=[
+    {n:10,a:2,b:2},
+    {n:10,a:3,b:2},
+    {n:10,a:3,b:3},
+    {n:10,a:4,b:3},
+    {n:10,a:4,b:4}
+  ];
+  renderSettings();
+  calculate();
+}
+function fmt(sec){
+  if(!isFinite(sec)) return '-';
+  const m=Math.floor(sec/60), s=sec-m*60;
+  return `${m}分${s.toFixed(2).padStart(5,'0')}秒`;
+}
+function secText(sec){ return isFinite(sec) ? sec.toFixed(2)+'秒' : '-'; }
+
+function calculate(){
+  // 音声タイマーが参照する「生徒目標の1題ごとの累計目標」を
+  // 画面表示の文字列から推測せず、ここで計算した数値そのものを共有する。
+  window.voiceTargetCumulative = [];
+  window.voiceTargetGoal = 0;
+  window.voiceTargetLimitSec = 0;
+
+  const total = normalizeTotal();
+  const limit=(Number($('minutes').value)||0)*60+(Number($('seconds').value)||0);
+  const goal=Math.max(1,Number($('goal').value)||1);
+  const type=$('type').value;
+  const sum=blocks.reduce((s,b)=>s+(Number(b.n)||0),0);
+
+  if(limit<=0 || sum!==total || goal>total){
+    $('result').innerHTML='<h2>③ 目標タイム</h2><div class="error">問題数とブロック合計を一致させ、制限時間・目標問題数を正しく設定してください。</div>';
+    return;
+  }
+
+  const problemCounts=[];
+  const blockInfo=[];
+  let problemNo=1, totalCalc=0;
+  blocks.forEach((b,i)=>{
+    const n=Math.max(1,Number(b.n)||1);
+    const per=Number(b.a)*Number(b.b);
+    const start=problemNo, end=problemNo+n-1;
+    const calc=n*per;
+    blockInfo.push({i,start,end,n,per,calc});
+    for(let j=0;j<n;j++) problemCounts.push(per);
+    problemNo=end+1;
+    totalCalc+=calc;
+  });
+
+  // Full-course reference:
+  // the entire problem set finishes exactly at the time limit.
+  const fullSecPerCalc=limit/totalCalc;
+
+  // Individualized goal:
+  // only the first `goal` problems are targeted, and those problems
+  // are expected to be completed within the same time limit.
+  const goalCalc=problemCounts.slice(0,goal).reduce((a,b)=>a+b,0);
+  const goalSecPerCalc=limit/goalCalc;
+
+  // ★音声タイマーとの正式な連携データ
+  // 各問題までの累計目標秒を「1題ごと」に保存する。
+  // 例：1題 2.80秒、2題 5.60秒、…、20題 70.00秒。
+  let voiceCum=0;
+  window.voiceTargetCumulative = problemCounts.slice(0,goal).map(per=>{
+    voiceCum += per * goalSecPerCalc;
+    return voiceCum;
+  });
+  window.voiceTargetGoal = goal;
+  window.voiceTargetLimitSec = limit;
+
+  let html='<h2>③ 目標タイム</h2>';
+
+  html+=`<div class="goal-card">
+    <div class="goal-title">⏱ 制限時間で全問するには</div>
+    <div class="goal-main">${total}題を ${fmt(limit)}</div>
+    <div class="note">問題全体の計算量を基準にした「全問制覇」の目安です。</div>
+  </div>`;
+
+  html+='<h3 style="margin-top:24px">全問制覇の基準</h3>';
+  html+='<table><thead><tr><th>問題範囲</th><th>問題数</th><th>1題の目標</th><th>ブロック目標</th><th>累計目標</th></tr></thead><tbody>';
+  let cum=0;
+  blockInfo.forEach(b=>{
+    cum+=b.calc;
+    html+=`<tr>
+      <td>${b.start}～${b.end}題</td>
+      <td>${b.n}題</td>
+      <td><strong>${secText(b.per*fullSecPerCalc)}</strong></td>
+      <td><strong>${fmt(b.calc*fullSecPerCalc)}</strong></td>
+      <td><strong>${fmt(cum*fullSecPerCalc)}</strong></td>
+    </tr>`;
+  });
+  html+='</tbody></table>';
+
+  html+=`<div class="goal-card personal-goal" style="margin-top:28px">
+    <div class="goal-title">🎯 生徒の目標</div>
+    <div class="goal-main">${goal}題を ${fmt(limit)} で</div>
+    <div class="note">「${goal}題までできるようになりたい」という目標に合わせ、${goal}題分の計算量に設定した制限時間を配分して算出しています。</div>
+    <div class="big">目標タイム：${fmt(limit)}</div>
+  </div>`;
+
+  html+='<h3 style="margin-top:24px">生徒の目標に合わせたタイム</h3>';
+  html+='<table><thead><tr><th>問題</th><th>その問題の目標</th><th>ここまでの累計目標</th></tr></thead><tbody>';
+  let goalCum=0;
+  for(let n=1;n<=goal;n++){
+    goalCum+=problemCounts[n-1];
+    const isGoal=n===goal;
+    html+=`<tr${isGoal?' style="background:#fff3cd;font-weight:700"':''}>
+      <td>${n}題${isGoal?' 🎯':''}</td>
+      <td>${secText(problemCounts[n-1]*goalSecPerCalc)}</td>
+      <td><strong>${fmt(goalCum*goalSecPerCalc)}</strong></td>
+    </tr>`;
+  }
+  html+='</tbody></table>';
+
+  html+='<h3 style="margin-top:24px">生徒の目標・ブロック別</h3>';
+  html+='<table><thead><tr><th>問題範囲</th><th>目標に含まれる問題数</th><th>1題の目標</th><th>ブロック目標</th><th>目標までの累計</th></tr></thead><tbody>';
+  let covered=0, personalCum=0;
+  blockInfo.forEach(b=>{
+    if(covered>=goal) return;
+    const take=Math.min(b.n, goal-covered);
+    const calc=take*b.per;
+    personalCum+=calc;
+    html+=`<tr>
+      <td>${b.start}～${b.start+take-1}題</td>
+      <td>${take}題</td>
+      <td><strong>${secText(b.per*goalSecPerCalc)}</strong></td>
+      <td><strong>${fmt(calc*goalSecPerCalc)}</strong></td>
+      <td><strong>${fmt(personalCum*goalSecPerCalc)}</strong></td>
+    </tr>`;
+    covered+=take;
+  });
+  html+='</tbody></table>';
+
+  html+=`<div class="highlight" style="margin-top:20px">
+    <div class="note">🎯 生徒への練習目標</div>
+    <div class="big">${goal}題までを ${fmt(limit)}</div>
+    <div class="note">まずはこのタイムを目標に練習し、達成できたら目標問題数を1題ずつ上げていけます。</div>
+  </div>`;
+
+  $('result').innerHTML=html;
+}
+document.getElementById('totalMinus').addEventListener('click',()=>changeTotal(-1));
+document.getElementById('totalPlus').addEventListener('click',()=>changeTotal(1));
+
+$('type').addEventListener('change',()=>{
+  blocks=[defaultBlock()];
+  renderSettings();
+  calculate();
+});
+$('total').addEventListener('input',()=>{
+  const raw = $('total').value.replace(/\D/g,'');
+  $('total').value = raw;
+  if(raw !== '') calculate();
+});
+$('total').addEventListener('change',()=>{
+  normalizeTotal(); renderSettings(); calculate();
+});
+$('goal').addEventListener('input',()=>{
+  $('goal').value = $('goal').value.replace(/\D/g,'');
+  if($('goal').value !== '') calculate();
+});
+$('goal').addEventListener('change',()=>{
+  const v = parseInt($('goal').value, 10);
+  $('goal').value = String(Math.max(1, Number.isFinite(v) ? v : 1));
+  calculate();
+});
+$('minutes').addEventListener('input',calculate);
+$('seconds').addEventListener('input',calculate);
+
+blocks=[defaultBlock()];
+renderSettings();
+calculate();
+renderSavedSettings();
+</script>
+<section id="voiceTimer" class="card voice-timer-card">
+<h2>🔊 生徒目標タイム 練習タイマー</h2><p>「ようい、はじめ！」の「よ」から約1.5秒後に計測を開始し、生徒の目標問題数まで1題ごとの目標タイムで番号を読み上げます。</p>
+<div class="voice-grid"><div><span>現在</span><strong id="voiceNumber">—</strong><small id="voiceTargetTime">—</small></div><div><span>経過</span><strong id="voiceElapsed">00:00.00</strong><small id="voiceNext">次：—</small></div></div>
+<div class="voice-actions"><button type="button" id="voiceStart">▶ スタート</button><button type="button" id="voicePause">⏸ 一時停止</button><button type="button" id="voiceReset">↺ リセット</button></div>
+<label>読み上げ <select id="voiceMode"><option value="number">1、2、3…</option><option value="number_jp">1番、2番、3番…</option></select></label>
+<div id="voiceStatus" aria-live="polite">待機中</div><small>※「スタート」をタップすると「ようい、はじめ！」と発声し、「よ」から約1.5秒後に計測を開始します。</small></section>
+<script>(function(){
+const g=id=>document.getElementById(id);
+let running=false,paused=false,i=0,start=0,pauseAt=0,raf=0;
+let targets=[],goal=0,limitSec=0,finishTimer=0;
+
+function speak(text){
+  if(!('speechSynthesis' in window)) return;
+  speechSynthesis.cancel();
+  const u=new SpeechSynthesisUtterance(text);
+  u.lang='ja-JP'; u.rate=1.0; u.pitch=1.0;
+  speechSynthesis.speak(u);
+}
+
+function beep(){
+  const cb=g('voiceBeep');
+  if(cb && !cb.checked)return;
+  try{
+    const AC=window.AudioContext||window.webkitAudioContext;
+    if(!AC)return;
+    const ac=new AC(),o=ac.createOscillator(),gn=ac.createGain();
+    o.type='sine';o.frequency.value=880;
+    gn.gain.setValueAtTime(.0001,ac.currentTime);
+    gn.gain.exponentialRampToValueAtTime(.15,ac.currentTime+.01);
+    gn.gain.exponentialRampToValueAtTime(.0001,ac.currentTime+.13);
+    o.connect(gn);gn.connect(ac.destination);o.start();o.stop(ac.currentTime+.14);
+  }catch(e){}
+}
+
+function fmt(ms){
+  const s=Math.max(0,ms)/1000,m=Math.floor(s/60),sec=(s-m*60).toFixed(2).padStart(5,'0');
+  return String(m).padStart(2,'0')+':'+sec;
+}
+
+function readNum(n){
+  const mode=g('voiceMode')?.value;
+  beep();
+  speak(mode==='number_jp'?`${n}番`:String(n));
+}
+
+/*
+  既存シミュレーターの計算結果から、
+  「各問題を終えるべき累計秒数」を取得する。
+  取れない場合だけ、目標問題数に制限時間を均等配分する。
+*/
+function makeTargets(){
+  targets=[];
+
+  const goalEls=['#goal','#studentGoal','#targetProblems','#goalCount'];
+  let goal=0;
+  for(const s of goalEls){
+    const e=document.querySelector(s);
+    if(e){
+      const v=parseInt(e.value,10);
+      if(Number.isFinite(v)&&v>0){goal=v;break;}
+    }
+  }
+
+  // 画面上の「生徒の目標問題数」から探す。
+  if(!goal){
+    const all=[...document.querySelectorAll('input')];
+    const hit=all.find(e=>{
+      const t=(e.parentElement?.parentElement?.textContent||'');
+      return t.includes('生徒の目標問題数');
+    });
+    if(hit)goal=parseInt(hit.value,10)||0;
+  }
+
+  if(!goal)goal=1;
+
+  // ★最優先：calculate() が計算した数値そのものを使う。
+  // これなら「生徒の目標・ブロック別」の表示形式や、
+  // 1分を超えた「1分10.00秒」の文字列に依存しない。
+  if(Array.isArray(window.voiceTargetCumulative)
+      && window.voiceTargetCumulative.length>=goal){
+    const a=window.voiceTargetCumulative.slice(0,goal).map(Number);
+    if(a.every(Number.isFinite) && a.every((v,j)=>j===0 || v> a[j-1])){
+      targets=a;
+    }
+  }
+
+  // 共有データがない古い状態との互換用に、既存の配列も確認。
+  if(!targets.length){
+    const candidates=[
+      window.cumulativeTimes,
+      window.cumulative,
+      window.cumulativeSeconds,
+      window.targetCumulativeTimes,
+      window.targetTimes
+    ];
+    for(const arr of candidates){
+      if(Array.isArray(arr)&&arr.length>=goal){
+        const a=arr.slice(0,goal).map(Number);
+        if(a.every(Number.isFinite)){
+          targets=a;
+          break;
+        }
+      }
+    }
+  }
+
+  // 結果表から累計秒を読む。
+  // ★重要：累計タイムは「00:59.50」「01:07.50」のような
+  // 「0分24.00秒」「1分07.50秒」などの表示なので、
+  // parseFloat()だけでは正しく秒へ変換できない。
+  // 日本語表記と mm:ss.xx の両方を正しく秒へ変換する。
+  function parseTimeToSeconds(text){
+    const s=String(text).trim();
+
+    // 表示形式1：0分24.00秒 / 1分07.50秒
+    let m=s.match(/^(\d+)分(\d+(?:\.\d+)?)秒$/);
+    if(m)return Number(m[1])*60+Number(m[2]);
+
+    // 表示形式2：00:24.00 / 01:07.50
+    m=s.match(/^(?:(\d+):)?(\d+(?:\.\d+)?)$/);
+    if(!m)return NaN;
+    if(m[1]!==undefined)return Number(m[1])*60+Number(m[2]);
+    return Number(m[2]);
+  }
+
+  if(!targets.length){
+    // 「生徒の目標に合わせたタイム」の表を優先して探す。
+    const headings=[...document.querySelectorAll('h3,h2')];
+    let targetTable=null;
+    const heading=headings.find(h=>h.textContent.includes('生徒の目標に合わせたタイム'));
+    if(heading){
+      let el=heading.nextElementSibling;
+      while(el){
+        if(el.tagName==='TABLE'){targetTable=el;break;}
+        el=el.nextElementSibling;
+      }
+    }
+
+    const tables=targetTable?[targetTable]:[...document.querySelectorAll('table')];
+    for(const table of tables){
+      const rows=[...table.querySelectorAll('tbody tr')];
+      const vals=[];
+      for(const row of rows){
+        const cells=[...row.children].map(x=>x.textContent.trim());
+        if(cells.length>=3){
+          // 「生徒の目標に合わせたタイム」は3列目が累計。
+          // 「生徒の目標・ブロック別」は5列目が累計。
+          // 見出しに応じて列を選ぶ。
+          let col = 2;
+          const th=[...table.querySelectorAll('thead th')].map(x=>x.textContent.trim());
+          if(th.includes('目標までの累計')) col = th.indexOf('目標までの累計');
+          else if(th.includes('ここまでの累計目標')) col = th.indexOf('ここまでの累計目標');
+          if(col<cells.length){
+            const v=parseTimeToSeconds(cells[col].replace('🎯','').trim());
+            if(Number.isFinite(v))vals.push(v);
+          }
+        }
+      }
+      if(vals.length>=goal){
+        const a=vals.slice(0,goal);
+        // 累計値は必ず増加する。
+        if(a.every((v,j)=>j===0||v>=a[j-1])){
+          targets=a;
+          break;
+        }
+      }
+    }
+  }
+
+  // 制限時間は基本設定で「分」入力なので、秒へ変換する。
+  // 例：1分 → 60秒、5分 → 300秒。
+  limitSec=0;
+  const timeIds=['limit','time','limitTime','timeLimit'];
+  for(const id of timeIds){
+    const e=g(id);
+    if(e){
+      const v=parseFloat(e.value);
+      if(Number.isFinite(v)&&v>0){limitSec=v*60;break;}
+    }
+  }
+  if(!limitSec){
+    const all=[...document.querySelectorAll('input')];
+    const hit=all.find(e=>(e.parentElement?.parentElement?.textContent||'').includes('制限時間'));
+    if(hit){
+      const v=parseFloat(hit.value);
+      if(Number.isFinite(v)&&v>0)limitSec=v*60;
+    }
+  }
+  if(!limitSec)limitSec=180;
+
+  // 既存の累計タイムが取れなかった場合のみ均等配分。
+  if(!targets.length){
+    targets=Array.from({length:goal},(_,j)=>limitSec*(j+1)/goal);
+  }
+
+  // 目標問題数を超えない。
+  targets=targets.slice(0,goal);
+  return targets;
+}
+
+function reset(){
+  running=false;paused=false;i=0;
+  cancelAnimationFrame(raf);
+  clearTimeout(finishTimer);
+  if(window._voiceDelayTimer)clearTimeout(window._voiceDelayTimer);
+  if('speechSynthesis'in window)speechSynthesis.cancel();
+
+  makeTargets();
+  g('voiceNumber').textContent='—';
+  g('voiceElapsed').textContent='00:00.00';
+  g('voiceTargetTime').textContent='—';
+  g('voiceStatus').textContent='待機中';
+  g('voiceNext').textContent=targets.length?'次の読み上げ：'+fmt(targets[0]*1000):'次の読み上げ：—';
+}
+
+function finish(){
+  running=false;paused=false;
+  cancelAnimationFrame(raf);
+  clearTimeout(finishTimer);
+  finishTimer=0;
+  g('voiceStatus').textContent='終了';
+  g('voiceNext').textContent='制限時間終了';
+  // 制限時間ちょうどで「やめ！」。
+  speak('やめ！');
+}
+
+function tick(now){
+  if(!running)return;
+  const elapsed=(now-start)/1000;
+  g('voiceElapsed').textContent=fmt(elapsed*1000);
+
+  // 生徒の目標に合わせた「各問題の累計目標タイム」で読み上げ。
+  while(i<targets.length && elapsed>=targets[i]){
+    const n=i+1;
+    g('voiceNumber').textContent=n;
+    g('voiceTargetTime').textContent='目標 '+fmt(targets[i]*1000);
+    readNum(n);
+    i++;
+  }
+
+  if(elapsed>=limitSec){
+    g('voiceElapsed').textContent=fmt(limitSec*1000);
+    finish();
+    return;
+  }
+
+  if(i<targets.length){
+    g('voiceNext').textContent='次の読み上げ：'+fmt(targets[i]*1000);
+  }else{
+    g('voiceNext').textContent='生徒の目標問題数まで完了';
+  }
+  raf=requestAnimationFrame(tick);
+}
+
+g('voiceStart').onclick=function(){
+  makeTargets();
+
+  if(paused){
+    start+=performance.now()-pauseAt;
+    paused=false;running=true;
+    g('voiceStatus').textContent='計測中';
+    cancelAnimationFrame(raf);
+    raf=requestAnimationFrame(tick);
+    return;
+  }
+
+  running=false;i=0;cancelAnimationFrame(raf);
+  clearTimeout(finishTimer);
+  if('speechSynthesis'in window)speechSynthesis.cancel();
+
+  g('voiceStatus').textContent='ようい、はじめ！';
+  g('voiceNumber').textContent='—';
+  g('voiceElapsed').textContent='00:00.00';
+
+  // 「ようい、はじめ！」を発声し、発声開始から1.5秒後に計測開始。
+  const cueStart=performance.now();
+  const u=new SpeechSynthesisUtterance('ようい、はじめ！');
+  u.lang='ja-JP';u.rate=1.0;u.pitch=1.0;
+  if('speechSynthesis'in window)speechSynthesis.speak(u);
+
+  window._voiceDelayTimer=setTimeout(function(){
+    // 発声開始を基準に1.5秒。
+    if(performance.now()-cueStart<1450)return;
+    start=performance.now();
+    i=0;running=true;
+    g('voiceStatus').textContent='計測中';
+    cancelAnimationFrame(raf);
+    clearTimeout(finishTimer);
+    // 制限時間そのものを基準に終了音声を予約する。
+    finishTimer=setTimeout(function(){
+      if(running && !paused){
+        g('voiceElapsed').textContent=fmt(limitSec*1000);
+        finish();
+      }
+    },limitSec*1000);
+    raf=requestAnimationFrame(tick);
+  },1500);
+};
+
+g('voicePause').onclick=function(){
+  if(!running)return;
+  running=false;paused=true;pauseAt=performance.now();
+  cancelAnimationFrame(raf);
+  g('voiceStatus').textContent='一時停止';
+  if('speechSynthesis'in window)speechSynthesis.cancel();
+};
+
+g('voiceReset').onclick=reset;
+
+['input','change'].forEach(ev=>{
+  document.addEventListener(ev,e=>{
+    if(e.target && ['goal','studentGoal','targetProblems','goalCount','total','limit','time','limitTime','timeLimit','type'].includes(e.target.id)){
+      setTimeout(reset,80);
+    }
+  },true);
+});
+
+window.resetVoiceTimer = reset;
+setTimeout(reset,100);
+})();</script></body>
+</html>
